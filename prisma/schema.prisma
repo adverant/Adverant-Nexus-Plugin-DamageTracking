@@ -1,0 +1,429 @@
+// Nexus Damage Tracking & Maintenance Service Database Schema
+// PostgreSQL with Prisma ORM
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// INSPECTIONS
+// ============================================================================
+
+model Inspection {
+  id             String   @id @default(uuid())
+  propertyId     String
+  unitId         String?
+  reservationId  String?
+  inspectorId    String
+
+  inspectionType InspectionType
+  status         InspectionStatus @default(SCHEDULED)
+
+  scheduledAt    DateTime
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  // GPS and metadata
+  startLocation  Json?    // {latitude, longitude, accuracy}
+  endLocation    Json?    // {latitude, longitude, accuracy}
+
+  // Photos with metadata
+  photos         Json     @default("[]") // [{room, angle, url, timestamp, gps, metadata}]
+
+  // Room-by-room checklist
+  checklist      Json     @default("{}") // {room_name: {items: [{name, condition, notes, photos}]}}
+
+  overallCondition Condition?
+  notes          String?
+
+  // Report generation
+  reportUrl      String?
+  reportGeneratedAt DateTime?
+
+  // Relationships
+  damages        Damage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([inspectorId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@map("inspections")
+}
+
+enum InspectionType {
+  MOVE_IN
+  MOVE_OUT
+  PERIODIC
+  PRE_LISTING
+  POST_INCIDENT
+  TURNOVER
+}
+
+enum InspectionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  REQUIRES_REVIEW
+  APPROVED
+  CANCELLED
+}
+
+enum Condition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  CRITICAL
+}
+
+// ============================================================================
+// DAMAGES
+// ============================================================================
+
+model Damage {
+  id              String   @id @default(uuid())
+  inspectionId    String
+  reservationId   String?
+  propertyId      String
+
+  room            String
+  location        String   // wall, ceiling, floor, furniture item, appliance
+  coordinates     Json?    // {x, y} relative to room/photo
+
+  damageType      DamageType
+  severity        Severity
+  description     String
+
+  photos          Json     @default("[]") // [{url, timestamp, metadata}]
+  beforePhotoUrl  String?
+  afterPhotoUrl   String?
+
+  // AI Detection (from Computer Vision Service)
+  aiDetected      Boolean  @default(false)
+  aiConfidence    Decimal? @db.Decimal(5, 4) // 0.0000 to 1.0000
+  aiDamageType    String?
+  aiSeverity      String?
+  aiBoundingBox   Json?    // {x, y, width, height}
+  aiMetadata      Json?    // Additional AI analysis data
+
+  // Cost Estimation
+  estimatedCostAi     Decimal? @db.Decimal(10, 2)
+  estimatedCostManual Decimal? @db.Decimal(10, 2)
+  actualCost          Decimal? @db.Decimal(10, 2)
+
+  // Status and responsibility
+  status          DamageStatus @default(REPORTED)
+  responsibleParty ResponsibleParty?
+
+  // Dispute handling
+  disputed        Boolean  @default(false)
+  disputeReason   String?
+  disputeEvidence Json?    // {photos: [], documents: [], notes: ''}
+  disputeResolvedAt DateTime?
+  disputeResolution String?
+
+  // Relationships
+  inspection      Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+  workOrders      WorkOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([inspectionId])
+  @@index([propertyId])
+  @@index([status])
+  @@index([aiDetected])
+  @@map("damages")
+}
+
+enum DamageType {
+  STAIN
+  HOLE
+  CRACK
+  BURN
+  WATER_DAMAGE
+  BROKEN_ITEM
+  SCRATCH
+  DENT
+  CHIP
+  MOLD
+  PEST
+  STRUCTURAL
+  ELECTRICAL
+  PLUMBING
+  APPLIANCE
+  FURNITURE
+  FLOORING
+  WALL
+  CEILING
+  OTHER
+}
+
+enum Severity {
+  MINOR
+  MODERATE
+  MAJOR
+  CRITICAL
+}
+
+enum DamageStatus {
+  REPORTED
+  UNDER_REVIEW
+  DISPUTED
+  APPROVED
+  REPAIR_SCHEDULED
+  REPAIR_IN_PROGRESS
+  REPAIRED
+  VERIFIED
+  CLOSED
+}
+
+enum ResponsibleParty {
+  GUEST
+  OWNER
+  VENDOR
+  WEAR_AND_TEAR
+  UNKNOWN
+}
+
+// ============================================================================
+// WORK ORDERS
+// ============================================================================
+
+model WorkOrder {
+  id              String   @id @default(uuid())
+  propertyId      String
+  unitId          String?
+  damageId        String?
+
+  workOrderType   WorkOrderType
+  category        WorkCategory
+
+  title           String
+  description     String
+  priority        Priority @default(NORMAL)
+  status          WorkOrderStatus @default(PENDING)
+
+  vendorId        String?
+  assignedTo      String?
+  assignedAt      DateTime?
+
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  verifiedAt      DateTime?
+
+  estimatedCost   Decimal? @db.Decimal(10, 2)
+  actualCost      Decimal? @db.Decimal(10, 2)
+  laborCost       Decimal? @db.Decimal(10, 2)
+  materialsCost   Decimal? @db.Decimal(10, 2)
+
+  photosBefore    Json     @default("[]")
+  photosAfter     Json     @default("[]")
+
+  completionNotes String?
+  vendorNotes     String?
+
+  // Quality control
+  verifiedBy      String?
+  qualityRating   Int?     // 1-5 stars
+  vendorRating    Int?     // 1-5 stars for vendor performance
+
+  // Relationships
+  damage          Damage?  @relation(fields: [damageId], references: [id])
+  vendor          Vendor?  @relation(fields: [vendorId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([propertyId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([priority])
+  @@index([scheduledAt])
+  @@map("work_orders")
+}
+
+enum WorkOrderType {
+  REPAIR
+  PREVENTIVE
+  EMERGENCY
+  UPGRADE
+  INSPECTION
+  CLEANING
+}
+
+enum WorkCategory {
+  PLUMBING
+  ELECTRICAL
+  HVAC
+  APPLIANCE
+  STRUCTURAL
+  PAINTING
+  DRYWALL
+  FLOORING
+  ROOFING
+  WINDOWS
+  DOORS
+  LOCKS
+  CLEANING
+  LANDSCAPING
+  PEST_CONTROL
+  GENERAL
+  OTHER
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+  EMERGENCY
+}
+
+enum WorkOrderStatus {
+  PENDING
+  ASSIGNED
+  SCHEDULED
+  IN_PROGRESS
+  ON_HOLD
+  COMPLETED
+  VERIFIED
+  CANCELLED
+  REJECTED
+}
+
+// ============================================================================
+// VENDORS
+// ============================================================================
+
+model Vendor {
+  id                String   @id @default(uuid())
+  name              String
+  company           String?
+  email             String   @unique
+  phone             String
+  alternatePhone    String?
+
+  specialties       Json     @default("[]") // [PLUMBING, ELECTRICAL, HVAC, etc]
+  serviceAreas      Json     @default("[]") // [{city, state, radius_miles}]
+
+  // Contact details
+  address           Json?    // {street, city, state, zip, country}
+  website           String?
+
+  // Business info
+  businessHours     Json?    // {monday: {open: '08:00', close: '17:00'}, ...}
+  emergencyAvailable Boolean @default(false)
+  responseTimeSLA   Int?     // Average response time in hours
+
+  // Ratings and performance
+  rating            Decimal? @db.Decimal(3, 2) // 0.00 to 5.00
+  totalJobs         Int      @default(0)
+  completedJobs     Int      @default(0)
+  cancelledJobs     Int      @default(0)
+
+  // Performance metrics
+  avgCompletionTime Int?     // Average days to complete
+  avgResponseTime   Int?     // Average hours to respond
+  onTimeRate        Decimal? @db.Decimal(5, 4) // 0.0000 to 1.0000
+  qualityScore      Decimal? @db.Decimal(3, 2) // 0.00 to 5.00
+
+  // Pricing
+  pricingInfo       Json?    // {hourly_rate, callout_fee, minimum_charge, markup}
+  paymentTerms      String?  // NET30, NET15, COD, etc
+
+  // Credentials
+  insuranceVerified Boolean  @default(false)
+  insuranceExpiry   DateTime?
+  insuranceProvider String?
+  insurancePolicy   String?
+
+  licenseNumber     String?
+  licenseState      String?
+  licenseExpiry     DateTime?
+  licenseVerified   Boolean  @default(false)
+
+  bondedAmount      Decimal? @db.Decimal(10, 2)
+
+  // Documents
+  w9OnFile          Boolean  @default(false)
+  contractSigned    Boolean  @default(false)
+  backgroundCheck   Boolean  @default(false)
+
+  // Status
+  status            VendorStatus @default(PENDING)
+  preferredVendor   Boolean  @default(false)
+
+  notes             String?
+  internalNotes     String?  // Not visible to vendor
+
+  // Relationships
+  workOrders        WorkOrder[]
+  reviews           VendorReview[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([rating])
+  @@index([preferredVendor])
+  @@map("vendors")
+}
+
+enum VendorStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  REJECTED
+}
+
+// ============================================================================
+// VENDOR REVIEWS
+// ============================================================================
+
+model VendorReview {
+  id              String   @id @default(uuid())
+  vendorId        String
+  workOrderId     String?
+  propertyId      String
+
+  reviewerId      String   // User ID who left review
+
+  rating          Int      // 1-5 stars
+
+  // Detailed ratings
+  qualityRating   Int?     // 1-5
+  timelinessRating Int?    // 1-5
+  communicationRating Int? // 1-5
+  professionalismRating Int? // 1-5
+  valueRating     Int?     // 1-5
+
+  review          String?
+  pros            String?
+  cons            String?
+
+  wouldRecommend  Boolean  @default(true)
+  wouldHireAgain  Boolean  @default(true)
+
+  photos          Json     @default("[]")
+
+  // Relationships
+  vendor          Vendor   @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([vendorId])
+  @@index([rating])
+  @@map("vendor_reviews")
+}
