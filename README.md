@@ -1,6 +1,3 @@
-<p align="center">
-  <img src="assets/icon.png" alt="DamageTracking Logo" width="120" height="120">
-</p>
 
 <h1 align="center">DamageTracking</h1>
 
