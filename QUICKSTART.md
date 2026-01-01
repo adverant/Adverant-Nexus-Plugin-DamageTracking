@@ -1,6 +1,6 @@
 # DamageTrack Quick Start Guide
 
-Reduce damage dispute resolution time by 85% with AI-powered property damage detection using computer vision. Get your first automated inspection running in under 5 minutes.
+AI-powered property damage detection using computer vision to streamline dispute resolution. Get your first automated inspection running in under 5 minutes.
 
 ## Prerequisites
 

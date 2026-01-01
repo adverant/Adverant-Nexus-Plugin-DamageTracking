@@ -1,0 +1,114 @@
+{
+  "name": "nexus-damagetracking",
+  "displayName": "DamageTrack - AI Property Damage Assessment",
+  "version": "1.0.0",
+  "description": "AI-powered property damage detection and tracking using computer vision. Automated inspections, damage reports, cost estimation, and insurance documentation.",
+  "developer": {
+    "name": "Adverant",
+    "url": "https://adverant.ai",
+    "email": "plugins@adverant.ai",
+    "verified": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adverant/Adverant-Nexus-Plugin-DamageTracking"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "damage-detection",
+    "property-inspection",
+    "computer-vision",
+    "insurance",
+    "maintenance",
+    "hospitality"
+  ],
+  "nexus": {
+    "minVersion": "1.0.0",
+    "executionMode": "mcp_container",
+    "isolationLevel": 2,
+    "capabilities": [
+      "damage-detection",
+      "image-analysis",
+      "cost-estimation",
+      "report-generation",
+      "trend-analysis"
+    ],
+    "permissions": [
+      "network:api.openai.com",
+      "filesystem:temp",
+      "service:mageagent",
+      "service:fileprocess"
+    ],
+    "entrypoint": "dist/index.js",
+    "healthCheck": "/health",
+    "readinessCheck": "/ready",
+    "livenessCheck": "/live"
+  },
+  "resources": {
+    "cpuMillicores": 2000,
+    "memoryMB": 4096,
+    "diskGB": 10,
+    "timeoutMs": 300000,
+    "maxConcurrentJobs": 10
+  },
+  "api": {
+    "version": "v1",
+    "basePath": "/api/v1/damage",
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/inspect",
+        "description": "Analyze images for damage"
+      },
+      {
+        "method": "GET",
+        "path": "/reports/:propertyId",
+        "description": "Get damage reports"
+      },
+      {
+        "method": "POST",
+        "path": "/estimate",
+        "description": "Generate cost estimate"
+      },
+      {
+        "method": "GET",
+        "path": "/analytics",
+        "description": "Get damage trends"
+      }
+    ]
+  },
+  "pricing": {
+    "model": "usage_based",
+    "currency": "USD",
+    "tiers": [
+      {
+        "name": "starter",
+        "displayName": "Starter",
+        "priceMonthly": 9900,
+        "limits": { "inspectionsPerMonth": 100 },
+        "features": ["basic-detection", "reports"]
+      },
+      {
+        "name": "professional",
+        "displayName": "Professional",
+        "priceMonthly": 29900,
+        "limits": { "inspectionsPerMonth": 500 },
+        "features": ["advanced-detection", "cost-estimation", "analytics"],
+        "popular": true
+      },
+      {
+        "name": "enterprise",
+        "displayName": "Enterprise",
+        "priceMonthly": -1,
+        "limits": { "inspectionsPerMonth": -1 },
+        "features": ["unlimited", "custom-models", "insurance-integration"]
+      }
+    ]
+  },
+  "marketplace": {
+    "category": "property-management",
+    "subcategory": "maintenance",
+    "featured": false,
+    "tags": ["damage-detection", "property", "inspection", "insurance", "maintenance"]
+  }
+}

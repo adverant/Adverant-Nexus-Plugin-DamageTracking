@@ -134,8 +134,8 @@ flowchart TD
 
 ### Business Impact
 
-- **85% faster** damage dispute resolution
-- **$45,000/year** recovered in previously missed damages
+- **Faster damage dispute resolution** with AI comparison
+- **Recovered revenue** from previously missed damages
 - **Documented evidence** for every claim
 
 ---
@@ -202,7 +202,7 @@ class InsuranceClaimService {
 
 ### Business Impact
 
-- **70% faster** claim processing
+- **Faster claim processing** with automated documentation
 - **Higher claim approval rates** with proper documentation
 - **Reduced adjuster visits** with comprehensive photo evidence
 
@@ -278,9 +278,9 @@ class PreventiveMaintenanceService:
 
 ### Business Impact
 
-- **40% reduction** in emergency repairs
-- **$25,000/year** saved in preventive vs reactive maintenance
-- **Extended property lifespan** through early detection
+- **Reduced emergency repairs** through early detection
+- **Cost savings** from preventive vs reactive maintenance
+- **Extended property lifespan** through timely repairs
 
 ---
 
@@ -368,9 +368,9 @@ flowchart LR
 
 ### Business Impact
 
-- **92% dispute resolution** in property's favor
-- **$12,000/month** in recovered damage charges
-- **Reduced legal costs** with clear evidence
+- **Higher dispute resolution rate** in property's favor
+- **Recovered damage charges** with clear evidence
+- **Reduced legal costs** through documented proof
 
 ---
 
